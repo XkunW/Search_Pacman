@@ -18,6 +18,8 @@ Pacman agents (in searchAgents.py).
 """
 
 import util
+import copy
+
 
 class SearchProblem:
     """
@@ -70,7 +72,8 @@ def tinyMazeSearch(problem):
     from game import Directions
     s = Directions.SOUTH
     w = Directions.WEST
-    return  [s, s, w, s, w, w, s, w]
+    return [s, s, w, s, w, w, s, w]
+
 
 def depthFirstSearch(problem):
     """
@@ -86,18 +89,77 @@ def depthFirstSearch(problem):
     print "Is the start a goal?", problem.isGoalState(problem.getStartState())
     print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    OPEN = util.Stack()
+    start_state = problem.getStartState()
+    start_path = [start_state]
+    start = Node(start_state, start_path)
+    OPEN.push(start)
+    while not OPEN.isEmpty():
+        n = OPEN.pop()
+        if problem.isGoalState(n.state):
+            return n.actions
+        successors = problem.getSuccessors(n.state)
+        for successor in successors:
+            if successor[0] not in n.path:
+                succ = Node(n.state, n.path, n.actions, n.cost)
+                succ.successor(successor[0], successor[1], successor[2])
+                OPEN.push(succ)
+    return False
+
 
 def breadthFirstSearch(problem):
-    """Search the shallowest nodes in the search tree first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    """
+    Search the shallowest nodes in the search tree first.
+    """
+    OPEN = util.Queue()
+    start_state = problem.getStartState()
+    start_path = [start_state]
+    start = Node(start_state, start_path)
+    OPEN.push(start)
+    seen = {
+        start_state: 0
+    }
+    while not OPEN.isEmpty():
+        n = OPEN.pop()
+        if n.cost <= seen[n.state]:
+            if problem.isGoalState(n.state):
+                return n.actions
+            successors = problem.getSuccessors(n.state)
+            for successor in successors:
+                if (successor[0] not in seen) or \
+                        ((successor[0] in seen) and (successor[2] + n.cost) < seen[successor[0]]):
+                    succ = Node(n.state, n.path, n.actions, n.cost)
+                    succ.successor(successor[0], successor[1], successor[2])
+                    OPEN.push(succ)
+                    seen[successor[0]] = succ.cost
+    return False
+
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    OPEN = util.PriorityQueue()
+    start_state = problem.getStartState()
+    start_path = [start_state]
+    start = Node(start_state, start_path)
+    OPEN.push(start, start.cost)
+    seen = [
+        start_state
+    ]
+    while not OPEN.isEmpty():
+        n = OPEN.pop()
+        if problem.isGoalState(n.state):
+            return n.actions
+        successors = problem.getSuccessors(n.state)
+        for successor in successors:
+            if successor[0] not in seen:
+                succ = Node(n.state, n.path, n.actions, n.cost)
+                succ.successor(successor[0], successor[1], successor[2])
+                OPEN.push(succ, succ.cost)
+                seen.append(successor[0])
+
+    return False
+
 
 def nullHeuristic(state, problem=None):
     """
@@ -105,6 +167,7 @@ def nullHeuristic(state, problem=None):
     goal in the provided SearchProblem.  This heuristic is trivial.
     """
     return 0
+
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
@@ -117,3 +180,21 @@ bfs = breadthFirstSearch
 dfs = depthFirstSearch
 astar = aStarSearch
 ucs = uniformCostSearch
+
+
+class Node:
+    """
+    Class for nodes in OPEN
+    """
+
+    def __init__(self, state=(-1, -1), path=[], actions=[], cost=0):
+        self.state = state
+        self.path = copy.deepcopy(path)
+        self.actions = copy.deepcopy(actions)
+        self.cost = cost
+
+    def successor(self, new_state, new_action, new_cost):
+        self.state = new_state
+        self.path.append(new_state)
+        self.actions.append(new_action)
+        self.cost += new_cost
