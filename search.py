@@ -118,7 +118,7 @@ def breadthFirstSearch(problem):
     start = Node(start_state, start_path)
     OPEN.push(start)
     seen = {
-        start_state: 0
+        start_state: start.cost
     }
     while not OPEN.isEmpty():
         n = OPEN.pop()
@@ -128,7 +128,7 @@ def breadthFirstSearch(problem):
             successors = problem.getSuccessors(n.state)
             for successor in successors:
                 if (successor[0] not in seen) or \
-                        ((successor[0] in seen) and (successor[2] + n.cost) < seen[successor[0]]):
+                        ((successor[2] + n.cost) < seen[successor[0]]):
                     succ = Node(n.state, n.path, n.actions, n.cost)
                     succ.successor(successor[0], successor[1], successor[2])
                     OPEN.push(succ)
@@ -143,20 +143,21 @@ def uniformCostSearch(problem):
     start_path = [start_state]
     start = Node(start_state, start_path)
     OPEN.push(start, start.cost)
-    seen = [
-        start_state
-    ]
+    seen = {
+        start_state: start.cost
+    }
     while not OPEN.isEmpty():
         n = OPEN.pop()
         if problem.isGoalState(n.state):
             return n.actions
         successors = problem.getSuccessors(n.state)
         for successor in successors:
-            if successor[0] not in seen:
+            if (successor[0] not in seen) or \
+                    ((successor[2] + n.cost) < seen[successor[0]]):
                 succ = Node(n.state, n.path, n.actions, n.cost)
                 succ.successor(successor[0], successor[1], successor[2])
                 OPEN.push(succ, succ.cost)
-                seen.append(successor[0])
+                seen[successor[0]] = succ.cost
 
     return False
 
@@ -171,8 +172,30 @@ def nullHeuristic(state, problem=None):
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    OPEN = util.PriorityQueue()
+    start_state = problem.getStartState()
+    start_path = [start_state]
+    start_heuristic = heuristic(start_state, problem)
+    start = Node(start_state, start_path)
+    OPEN.push(start, start.cost)
+    seen = {
+        start_state: start.cost + start_heuristic
+    }
+    while not OPEN.isEmpty():
+        n = OPEN.pop()
+        if problem.isGoalState(n.state):
+            return n.actions
+        successors = problem.getSuccessors(n.state)
+        for successor in successors:
+            succ_heuristic = heuristic(successor[0], problem)
+            if (successor[0] not in seen) or \
+                    ((successor[2] + n.cost + succ_heuristic) < seen[successor[0]]):
+                succ = Node(n.state, n.path, n.actions, n.cost)
+                succ.successor(successor[0], successor[1], successor[2])
+                OPEN.push(succ, succ.cost + succ_heuristic)
+                seen[successor[0]] = succ.cost + succ_heuristic
+
+    return False
 
 
 # Abbreviations
