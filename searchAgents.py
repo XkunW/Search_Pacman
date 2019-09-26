@@ -297,27 +297,38 @@ class CornersProblem(search.SearchProblem):
         self._expanded = 0  # DO NOT CHANGE; Number of search nodes expanded
         # Please add any code here which you would like to use
         # in initializing the problem
-        self.corners_found = 0
+        self.corners_found = {
+            (1, 1): False,
+            (1, top): False,
+            (right, 1): False,
+            (right, top): False,
+        }
 
     def getStartState(self):
+        print "getStartState"
         """
         Returns the start state (in your state space, not the full Pacman state
         space)
         """
-        return self.startingPosition, self.corners_found
+        return self.startingPosition
 
     def isGoalState(self, state):
+        print "isGoalState"
         """
         Returns whether this search state is a goal state of the problem.
         """
         if state in self.corners:
-            if self.corners_found == 3:
-                return True
+            if not self.corners_found[state]:
+                self.corners_found[state] = True
+                return False
             else:
-                self.corners_found += 1
-        return False
+                for corner in self.corners_found:
+                    if not self.corners_found[corner]:
+                        return False
+                return True
 
     def getSuccessors(self, state):
+        print "getSuccessors"
         """
         Returns successor states, the actions they require, and a cost of 1.
 
@@ -332,22 +343,19 @@ class CornersProblem(search.SearchProblem):
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
             # Add a successor state to the successor list if the action is legal
             # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
-
-            (x, y), corners_found = state
+            x, y = state
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
-            if not self.walls[nextx][nexty]:
-                nextState = ((nextx, nexty), corners_found)
+            hitsWall = self.walls[nextx][nexty]
+            if not hitsWall:
+                nextState = (nextx, nexty)
                 successors.append((nextState, action, 1))
 
         self._expanded += 1  # DO NOT CHANGE
         return successors
 
     def getCostOfActions(self, actions):
+        print "getCostOfActions"
         """
         Returns the cost of a particular sequence of actions.  If those actions
         include an illegal move, return 999999.  This is implemented for you.
