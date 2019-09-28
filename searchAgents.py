@@ -41,6 +41,9 @@ import util
 import time
 import search
 
+from operator import itemgetter
+import math
+
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -460,6 +463,22 @@ class AStarFoodSearchAgent(SearchAgent):
         self.searchType = FoodSearchProblem
 
 
+def wallsCount(pos1, pos2, problem):
+    walls_list = problem.walls.asList()
+    x1, y1 = pos1
+    x2, y2 = pos2
+    x_min = min(x1, x2)
+    x_max = max(x1, x2)
+    y_min = min(y1, y2)
+    y_max = max(y1, y2)
+    wall_count = 0
+    for wall in walls_list:
+        x, y = wall
+        if (x in range(x_min, x_max + 1)) and (y in range(y_min, y_max + 1)):
+            wall_count += 1
+    return wall_count
+
+
 def foodHeuristic(state, problem):
     """Your heuristic for the FoodSearchProblem goes here.
 
@@ -488,16 +507,52 @@ def foodHeuristic(state, problem):
     """
     position, foodGrid = state
     food_list = foodGrid.asList()
+    remaining_food_list = []
     distance_to_remaining_food = 0
+    if not problem.heuristicInfo:
+        distance_between_foods = []
+        for i in range(len(food_list) - 1):
+            for j in range(i + 1, len(food_list)):
+                d = util.manhattanDistance(food_list[i], food_list[j]) + \
+                    wallsCount(food_list[i], food_list[j], problem)
+                distance_between_foods.append([food_list[i], food_list[j], d])
+        sorted_distance_between_foods = sorted(distance_between_foods, key=itemgetter(1))
+        problem.heuristicInfo["distanceBetweenFoods"] = sorted_distance_between_foods
 
+    curr_food = position
     for food in food_list:
-
         x, y = food
         if foodGrid[x][y]:
-            distance_to_food = mazeDistance(position, food, problem.startingGameState)
-            distance_to_remaining_food = max(distance_to_food, distance_to_remaining_food)
+            remaining_food_list.append(food)
+            distance_to_food = util.manhattanDistance(position, food) + \
+                wallsCount(position, food, problem)
+            if distance_to_remaining_food == 0:
+                distance_to_remaining_food = distance_to_food
+                curr_food = food
 
-    return distance_to_remaining_food
+            if distance_to_remaining_food > distance_to_food:
+                distance_to_remaining_food = distance_to_food
+                curr_food = food
+
+    if remaining_food_list:
+        remaining_food_list.remove(curr_food)
+
+    while remaining_food_list:
+        for distance_info in problem.heuristicInfo["distanceBetweenFoods"]:
+            if curr_food in distance_info:
+                i = distance_info.index(curr_food)
+                i = abs(i - 1)
+                if distance_info[i] in remaining_food_list:
+                    distance_to_remaining_food += distance_info[2]
+                    remaining_food_list.remove(distance_info[i])
+                    curr_food = distance_info[i]
+                    break
+
+    scale_factor = max(1.0, len(food_list) * 0.5)
+    if len(food_list) < 4:
+        return distance_to_remaining_food / scale_factor
+    else:
+        return distance_to_remaining_food * 0.45
 
 
 class ClosestDotSearchAgent(SearchAgent):
