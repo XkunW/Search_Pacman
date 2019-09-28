@@ -42,7 +42,6 @@ import time
 import search
 
 from operator import itemgetter
-import math
 
 
 class GoWestAgent(Agent):
