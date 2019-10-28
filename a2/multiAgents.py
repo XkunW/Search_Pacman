@@ -18,6 +18,7 @@ import random, util
 
 from game import Agent
 
+
 class ReflexAgent(Agent):
     """
       A reflex agent chooses an action at each choice point by examining
@@ -27,7 +28,6 @@ class ReflexAgent(Agent):
       it in any way you see fit, so long as you don't touch our method
       headers.
     """
-
 
     def getAction(self, gameState):
         """
@@ -45,7 +45,7 @@ class ReflexAgent(Agent):
         scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
         bestScore = max(scores)
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
-        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+        chosenIndex = random.choice(bestIndices)  # Pick randomly among the best
 
         "Add more of your code here if you want to"
 
@@ -73,8 +73,33 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        remainingCapsules = successorGameState.getCapsules()
+        remainingFoods = currentGameState.getFood().asList()
+        currPosition = currentGameState.getPacmanPosition()
+
+        score = 0
+        for i in range(len(newGhostStates)):
+            currGhostPosition = newGhostStates[i].getPosition()
+            distance = util.manhattanDistance(currGhostPosition, newPos) + 0.0000001
+            if newScaredTimes[i] > distance:
+                score += 1000 / (distance * 1.0)
+            else:
+                if distance < 3:
+                    score -= 100 / (distance * 1.0)
+
+        for capsulePos in remainingCapsules:
+            distance = util.manhattanDistance(capsulePos, newPos) + 0.0000001
+            score += 20 / (distance * 1.0)
+
+        for foodPos in remainingFoods:
+            distance = util.manhattanDistance(foodPos, newPos) + 0.0000001
+            score += 10 / (distance * 1.0)
+
+        if newPos == currPosition:
+            score -= 20
+
+        return score
+
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -85,6 +110,7 @@ def scoreEvaluationFunction(currentGameState):
       (not reflex agents).
     """
     return currentGameState.getScore()
+
 
 class MultiAgentSearchAgent(Agent):
     """
@@ -101,10 +127,11 @@ class MultiAgentSearchAgent(Agent):
       is another abstract class.
     """
 
-    def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '2'):
-        self.index = 0 # Pacman is always agent index 0
+    def __init__(self, evalFn='scoreEvaluationFunction', depth='2'):
+        self.index = 0  # Pacman is always agent index 0
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
+
 
 class MinimaxAgent(MultiAgentSearchAgent):
     """
@@ -128,8 +155,37 @@ class MinimaxAgent(MultiAgentSearchAgent):
           gameState.getNumAgents():
             Returns the total number of agents in the game
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        agentNum = gameState.getNumAgents()
+        action, val = self.DFMiniMax(agentNum, 0, gameState)
+        return action
+
+    def DFMiniMax(self, agentNum, currDepth, gameState):
+        if (currDepth == self.depth * agentNum) or (gameState.isLose()) or (gameState.isWin()):
+            return None, self.evaluationFunction(gameState)
+        else:
+            actions = gameState.getLegalActions(currDepth % agentNum)
+            if len(actions) != 0:
+                bestAction = None
+                if currDepth % agentNum == 0:
+                    val = -float("inf")
+                else:
+                    val = float("inf")
+                for action in actions:
+                    successor = gameState.generateSuccessor(currDepth % agentNum, action)
+                    cost = self.DFMiniMax(agentNum, currDepth + 1, successor)
+                    if currDepth % agentNum == 0:
+                        if cost[1] > val:
+                            val = cost[1]
+                            bestAction = action
+                    else:
+                        if cost[1] < val:
+                            val = cost[1]
+                            bestAction = action
+                return bestAction, val
+            else:
+                return None, self.evaluationFunction(gameState)
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -140,8 +196,42 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
           Returns the minimax action using self.depth and self.evaluationFunction
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        agentNum = gameState.getNumAgents()
+        action, val = self.DFMiniMax(agentNum, 0, gameState, -float("inf"), float("inf"))
+        return action
+
+    def DFMiniMax(self, agentNum, currDepth, gameState, alpha, beta):
+        if (currDepth == self.depth * agentNum) or (gameState.isLose()) or (gameState.isWin()):
+            return None, self.evaluationFunction(gameState)
+        else:
+            actions = gameState.getLegalActions(currDepth % agentNum)
+            if len(actions) != 0:
+                bestAction = None
+                if currDepth % agentNum == 0:
+                    val = -float("inf")
+                else:
+                    val = float("inf")
+                for action in actions:
+                    successor = gameState.generateSuccessor(currDepth % agentNum, action)
+                    cost = self.DFMiniMax(agentNum, currDepth + 1, successor, alpha, beta)
+                    if currDepth % agentNum == 0:
+                        if cost[1] > val:
+                            val = cost[1]
+                            bestAction = action
+                        if val >= beta:
+                            return bestAction, val
+                        alpha = max(alpha, val)
+                    else:
+                        if cost[1] < val:
+                            val = cost[1]
+                            bestAction = action
+                        if val <= alpha:
+                            return bestAction, val
+                        beta = min(beta, val)
+                return bestAction, val
+            else:
+                return None, self.evaluationFunction(gameState)
+
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -155,19 +245,89 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           All ghosts should be modeled as choosing uniformly at random from their
           legal moves.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        agentNum = gameState.getNumAgents()
+        action, val = self.DFMiniMax(agentNum, 0, gameState)
+        return action
+
+    def DFMiniMax(self, agentNum, currDepth, gameState):
+        if (currDepth == self.depth * agentNum) or (gameState.isLose()) or (gameState.isWin()):
+            return None, self.evaluationFunction(gameState)
+        else:
+            actions = gameState.getLegalActions(currDepth % agentNum)
+            if len(actions) != 0:
+                bestAction = None
+                if currDepth % agentNum == 0:
+                    val = -float("inf")
+                else:
+                    val = 0
+                prob = 1 / (len(actions) * 1.0)
+                for action in actions:
+                    successor = gameState.generateSuccessor(currDepth % agentNum, action)
+                    cost = self.DFMiniMax(agentNum, currDepth + 1, successor)
+                    if currDepth % agentNum == 0:
+                        if cost[1] > val:
+                            val = cost[1]
+                            bestAction = action
+                    else:
+                        val += cost[1] * prob
+                return bestAction, val
+            else:
+                return None, self.evaluationFunction(gameState)
+
 
 def betterEvaluationFunction(currentGameState):
     """
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
       evaluation function (question 5).
 
-      DESCRIPTION: <write something here so we know what you did>
+      DESCRIPTION: Encourage agent to chase ghost when ghost is scared and remaining
+      scared time is less than distance, otherwise run away from ghost if ghost is
+      too close. Encourage agent to move close to food and capsule, the closer it gets,
+      the higher the score. Agent also gets higher score for less food and capsule
+      remaining. Total ghost score has highest weight as it strongly encourages agent to
+      chase ghost when ghost is scared, and keeps the agent alive by penalizing when ghost
+      is too close and not scared.
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    currPos = currentGameState.getPacmanPosition()
+    currGhostStates = currentGameState.getGhostStates()
+    currScaredTimes = [ghostState.scaredTimer for ghostState in currGhostStates]
+
+    remainingCapsules = currentGameState.getCapsules()
+    remainingFoods = currentGameState.getFood().asList()
+
+    score = 0
+    ghostScore = 0
+    for i in range(len(currGhostStates)):
+        currGhostPosition = currGhostStates[i].getPosition()
+        distance = util.manhattanDistance(currGhostPosition, currPos) + 0.0000001
+        if currScaredTimes[i] > distance:
+            ghostScore += pow(10000000 / (distance * 1.0), 2)
+        else:
+            if distance < 3:
+                ghostScore -= 6000 / (distance * 1.0)
+
+    capsuleScore = 0
+    for capsulePos in remainingCapsules:
+        distance = util.manhattanDistance(capsulePos, currPos) + 0.0000001
+        capsuleScore += 50 / (distance * 1.0)
+
+    if len(remainingCapsules) != 0:
+        capsuleScore += 1000 / (len(remainingCapsules) * 1.0)
+    else:
+        capsuleScore += 1000000
+
+    for foodPos in remainingFoods:
+        distance = util.manhattanDistance(foodPos, currPos) + 0.0000001
+        score += 1 / (distance * 1.0)
+
+    if len(remainingFoods) != 0:
+        score += 10000 / (len(remainingFoods) * 1.0)
+    else:
+        score += 1000000
+
+    return score + 8 * ghostScore + 5 * capsuleScore
+
 
 # Abbreviation
 better = betterEvaluationFunction
-
