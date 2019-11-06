@@ -13,7 +13,7 @@ def nQueens(n, tableCnstr):
     i = 0
     dom = []
     for i in range(n):
-        dom.append(i+1)
+        dom.append(i + 1)
 
     vars = []
     for i in dom:
@@ -21,16 +21,18 @@ def nQueens(n, tableCnstr):
 
     cons = []
     for qi in range(len(dom)):
-        for qj in range(qi+1, len(dom)):
+        for qj in range(qi + 1, len(dom)):
             if tableCnstr:
-                con = QueensTableConstraint("C(Q{},Q{})".format(qi+1,qj+1),
-                                            vars[qi], vars[qj], qi+1, qj+1)
-            else: con = QueensConstraint("C(Q{},Q{})".format(qi+1,qj+1),
-                                        vars[qi], vars[qj], qi+1, qj+1)
+                con = QueensTableConstraint("C(Q{},Q{})".format(qi + 1, qj + 1),
+                                            vars[qi], vars[qj], qi + 1, qj + 1)
+            else:
+                con = QueensConstraint("C(Q{},Q{})".format(qi + 1, qj + 1),
+                                       vars[qi], vars[qj], qi + 1, qj + 1)
             cons.append(con)
 
     csp = CSP("{}-Queens".format(n), vars, cons)
     return csp
+
 
 def solve_nQueens(n, algo, allsolns, tableCnstr=False, variableHeuristic='fixed', trace=False):
     '''Create and solve an nQueens CSP problem. The first
@@ -49,14 +51,15 @@ def solve_nQueens(n, algo, allsolns, tableCnstr=False, variableHeuristic='fixed'
     if len(solutions) == 0:
         print "No solutions to {} found".format(csp.name())
     else:
-       print "Solutions to {}:".format(csp.name())
-       i = 0
-       for s in solutions:
-           i += 1
-           print "Solution #{}: ".format(i),
-           for (var,val) in s:
-               print "{} = {}, ".format(var.name(),val),
-           print ""
+        print "Solutions to {}:".format(csp.name())
+        i = 0
+        for s in solutions:
+            i += 1
+            print "Solution #{}: ".format(i),
+            for (var, val) in s:
+                print "{} = {}, ".format(var.name(), val),
+            print ""
+
 
 ##################################################################
 ### SUDOKU
@@ -107,14 +110,14 @@ def sudokuCSP(initial_sudoku_board, model='neq'):
        variables in a row, column, or sub-square
 
     '''
-    #your implementation for Question 4 changes this function
-    #implement handling of model == 'alldiff'
+    # your implementation for Question 4 changes this function
+    # implement handling of model == 'alldiff'
 
     if not model in ['neq', 'alldiff']:
         print "Error wrong sudoku model specified {}. Must be one of {}".format(
             model, ['neq', 'alldiff'])
 
-    #first define the variables
+    # first define the variables
     i = 0
     var_array = []
     for row_list in initial_sudoku_board:
@@ -126,52 +129,54 @@ def sudokuCSP(initial_sudoku_board, model='neq'):
                 dom = [1, 2, 3, 4, 5, 6, 7, 8, 9]
             else:
                 dom = [cell]
-            var = Variable("V{},{}".format(i+1, j+1), dom)
+            var = Variable("V{},{}".format(i + 1, j + 1), dom)
             var_array[i].append(var)
             j += 1
         i += 1
 
-    #Set up the constraints
-    #row constraints
+    # Set up the constraints
+    # row constraints
     constraint_list = []
 
-    for row in var_array:
+    for index, row in enumerate(var_array):
         if model == 'neq':
             constraint_list.extend(post_all_pairs(row))
         elif model == 'alldiff':
-            util.raiseNotDefined()
+            constraint_list.append(AllDiffConstraint('Row ' + str(index), row))
 
     for colj in range(len(var_array[0])):
         scope = map(lambda row: row[colj], var_array)
         if model == 'neq':
             constraint_list.extend(post_all_pairs(scope))
         elif model == 'alldiff':
-            util.raiseNotDefined()
+            constraint_list.append(AllDiffConstraint('Col ' + str(colj), scope))
 
-    for i in [0, 3, 6]:
-        for j in [0, 3, 6]:
-            #initial upper left hand index of subsquare
+    for index_i, i in enumerate([0, 3, 6]):
+        for index_j, j in enumerate([0, 3, 6]):
+            # initial upper left hand index of subsquare
             scope = []
             for k in [0, 1, 2]:
-                for l in [0,1,2]:
-                    scope.append(var_array[i+k][j+l])
+                for l in [0, 1, 2]:
+                    scope.append(var_array[i + k][j + l])
             if model == 'neq':
                 constraint_list.extend(post_all_pairs(scope))
             elif model == 'alldiff':
-                util.raiseNotDefined()
+                constraint_list.append(AllDiffConstraint('Sub Square ' + str(index_i + index_j), scope))
 
     vars = [var for row in var_array for var in row]
     return CSP("Sudoku", vars, constraint_list)
+
 
 def post_all_pairs(var_list):
     '''create a not equal constraint between all pairs of variables in var_list
        return list of constructed constraint objects'''
     constraints = []
     for i in range(len(var_list)):
-        for j in range(i+1,len(var_list)):
-            c = NeqConstraint("({},{})".format(var_list[i].name(), var_list[j].name()),[var_list[i], var_list[j]])
+        for j in range(i + 1, len(var_list)):
+            c = NeqConstraint("({},{})".format(var_list[i].name(), var_list[j].name()), [var_list[i], var_list[j]])
             constraints.append(c)
     return constraints
+
 
 def solve_sudoku(initialBoard, model, algo, allsolns,
                  variableHeuristic='fixed', trace=False):
@@ -191,18 +196,20 @@ def solve_sudoku(initialBoard, model, algo, allsolns,
             print "Solution #{}: ".format(i)
             sudoku_print_soln(s)
 
+
 def sudoku_print_soln(s):
     '''s is a list of (var,value) pairs. Organize them into
        the right order and then print it in a board layout'''
     s.sort(key=lambda varval_pair: varval_pair[0].name())
-    print "-"*37
-    for i in range(0,9):
+    print "-" * 37
+    for i in range(0, 9):
         print "|",
-        for j in range(0,9):
-            indx = i*9 + j
+        for j in range(0, 9):
+            indx = i * 9 + j
             print s[indx][1], "|",
         print ""
-        print "-"*37
+        print "-" * 37
+
 
 ##################################################################
 ### Plane Sequencing
@@ -246,6 +253,7 @@ class PlaneProblem:
         Note also the access functions can_fly and can_start
 
     '''
+
     def __init__(self, planes, flights, can_fly, flights_at_start,
                  can_follow, maintenance_flights, min_maintenance_frequency):
         self.planes = planes
@@ -256,7 +264,7 @@ class PlaneProblem:
         self.maintenance_flights = maintenance_flights
         self.min_maintenance_frequency = min_maintenance_frequency
 
-        #do some data checks
+        # do some data checks
         for l in can_fly:
             for f in l[1:]:
                 if f not in flights:
@@ -276,14 +284,15 @@ class PlaneProblem:
         if min_maintenance_frequency == 0:
             print "PlaneProblem Error, min_maintenance_frequency must be greater than 0"
 
-        #now convert can_fly and flights_at_start to a dictionary that
-        #can be indexed by the plane.
+        # now convert can_fly and flights_at_start to a dictionary that
+        # can be indexed by the plane.
         for l in can_fly:
             self._can_fly[l[0]] = l[1:]
         for l in flights_at_start:
             self._flights_at_start[l[0]] = l[1:]
 
-        #some useful access functions
+        # some useful access functions
+
     def can_fly(self, plane):
         '''Return list of flights plane can fly'''
         return self._can_fly[plane]
@@ -294,28 +303,29 @@ class PlaneProblem:
             set(self._can_fly[plane]).intersection(
                 self._flights_at_start[plane]))
 
+
 def solve_planes(planes_problem, algo, allsolns,
                  variableHeuristic='mrv', silent=False, trace=False):
-    #Your implementation for Question 6 goes here.
+    # Your implementation for Question 6 goes here.
     #
-    #Do not but do not change the functions signature
-    #(the autograder will twig out if you do).
+    # Do not but do not change the functions signature
+    # (the autograder will twig out if you do).
 
-    #If the silent parameter is set to True
-    #you must ensure that you do not execute any print statements
-    #in this function.
-    #(else the output of the autograder will become confusing).
-    #So if you have any debugging print statements make sure you
-    #only execute them "if not silent". (The autograder will call
-    #this function with silent=True, plane_scheduling.py will call
-    #this function with silent=False)
+    # If the silent parameter is set to True
+    # you must ensure that you do not execute any print statements
+    # in this function.
+    # (else the output of the autograder will become confusing).
+    # So if you have any debugging print statements make sure you
+    # only execute them "if not silent". (The autograder will call
+    # this function with silent=True, plane_scheduling.py will call
+    # this function with silent=False)
 
-    #You can optionally ignore the trace parameter
-    #If you implemented tracing in your FC and GAC implementations
-    #you can set this argument to True for debugging.
+    # You can optionally ignore the trace parameter
+    # If you implemented tracing in your FC and GAC implementations
+    # you can set this argument to True for debugging.
     #
-    #Once you have implemented this function you should be able to
-    #run plane_scheduling.py to solve the test problems (or the autograder).
+    # Once you have implemented this function you should be able to
+    # run plane_scheduling.py to solve the test problems (or the autograder).
     #
     #
     '''This function takes a planes_problem (an instance of PlaneProblem
@@ -334,15 +344,14 @@ def solve_planes(planes_problem, algo, allsolns,
        plane.
     '''
 
-    #BUILD your CSP here and store it in the varable csp
+    # BUILD your CSP here and store it in the varable csp
 
-
-    #invoke search with the passed parameters
+    # invoke search with the passed parameters
     solutions, num_nodes = bt_search(algo, csp, variableHeuristic, allsolns, trace)
 
-    #Convert each solution into a list of lists specifying a schedule
-    #for each plane in the format described above.
+    # Convert each solution into a list of lists specifying a schedule
+    # for each plane in the format described above.
 
-    #then return a list containing all converted solutions
-    #(i.e., a list of lists of lists)
+    # then return a list containing all converted solutions
+    # (i.e., a list of lists of lists)
     util.raiseNotDefined()
