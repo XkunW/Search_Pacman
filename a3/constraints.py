@@ -324,11 +324,7 @@ class NValuesConstraint(Constraint):
                 num_required_values += 1
             elif nxtval is None:
                 nxt_domain = nxtvar.curDomain()
-                if any(self._required) in nxt_domain:
-                    if num_required_values < self._ub:
-                        num_required_values += 1
-                    else:
-                        if any(nxt_domain) not in self._required:
-                            num_required_values += 1
+                if (set(self._required) < set(nxt_domain) and num_required_values < self._ub) or set(nxt_domain) <= set(self._required):
+                    num_required_values += 1
 
         return self._lb <= num_required_values <= self._ub
